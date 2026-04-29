@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h2>Visitor Dashboard</h2>
+  <table border="1">
+    <thead>
+      <tr>
+        <th>IP</th>
+        <th>Country</th>
+        <th>City</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody id="data"></tbody>
+  </table>
+
+  <script>
+    async function load() {
+      const res = await fetch('/api/getVisits');
+      const visits = await res.json();
+
+      const tbody = document.getElementById('data');
+      tbody.innerHTML = '';
+
+      visits.forEach(v => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+          <td>${v.ip}</td>
+          <td>${v.location?.country || "Unknown"}</td>
+          <td>${v.location?.city || "Unknown"}</td>
+          <td>${new Date(v.timestamp).toLocaleString()}</td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    load();
+    setInterval(load, 5000);
+  </script>
+</body>
+</html>
