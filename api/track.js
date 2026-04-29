@@ -31,6 +31,7 @@ try {
   await db.collection("visits").add({
   ip,
   userAgent,
+  location,
   timestamp: new Date()
 });
 
