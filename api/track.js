@@ -15,6 +15,16 @@ export default async function handler(req, res) {
   req.socket.remoteAddress;
 
 const userAgent = req.headers["user-agent"];
+const ua = userAgent.toLowerCase();
+
+if (
+  ua.includes("bot") ||
+  ua.includes("crawl") ||
+  ua.includes("spider") ||
+  ua.includes("headless")
+) {
+  return res.status(200).json({ ignored: true });
+}
 
 let location = {};
 
