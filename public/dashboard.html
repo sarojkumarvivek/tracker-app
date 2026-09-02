@@ -319,6 +319,17 @@
 <script>
   // ── Helpers ──────────────────────────────────────────────────────────
 
+  // ── XSS Sanitizer ──────────────────────────────────────────────────
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
   function getBrowser(ua) {
     if (!ua) return ['❓', 'Unknown'];
     const u = ua.toLowerCase();
@@ -341,13 +352,33 @@
 
   function getFlag(country) {
     const map = {
-      'India':'🇮🇳','United States':'🇺🇸','United Kingdom':'🇬🇧',
-      'Germany':'🇩🇪','France':'🇫🇷','Canada':'🇨🇦','Australia':'🇦🇺',
-      'Japan':'🇯🇵','China':'🇨🇳','Brazil':'🇧🇷','Russia':'🇷🇺',
-      'Italy':'🇮🇹','Spain':'🇪🇸','Netherlands':'🇳🇱','Singapore':'🇸🇬',
-      'Pakistan':'🇵🇰','Bangladesh':'🇧🇩','Indonesia':'🇮🇩',
-      'South Korea':'🇰🇷','Mexico':'🇲🇽','Turkey':'🇹🇷',
-      'Saudi Arabia':'🇸🇦','UAE':'🇦🇪','Nigeria':'🇳🇬','Egypt':'🇪🇬',
+      // Asia
+      'India':'🇮🇳','China':'🇨🇳','Japan':'🇯🇵','South Korea':'🇰🇷',
+      'Singapore':'🇸🇬','Indonesia':'🇮🇩','Pakistan':'🇵🇰','Bangladesh':'🇧🇩',
+      'Vietnam':'🇻🇳','Thailand':'🇹🇭','Malaysia':'🇲🇾','Philippines':'🇵🇭',
+      'Sri Lanka':'🇱🇰','Nepal':'🇳🇵','Myanmar':'🇲🇲','Cambodia':'🇰🇭',
+      'Hong Kong':'🇭🇰','Taiwan':'🇹🇼','Kazakhstan':'🇰🇿','Uzbekistan':'🇺🇿',
+      // Middle East
+      'Saudi Arabia':'🇸🇦','UAE':'🇦🇪','United Arab Emirates':'🇦🇪',
+      'Turkey':'🇹🇷','Iran':'🇮🇷','Iraq':'🇮🇶','Israel':'🇮🇱',
+      'Jordan':'🇯🇴','Kuwait':'🇰🇼','Qatar':'🇶🇦','Bahrain':'🇧🇭','Oman':'🇴🇲',
+      // Europe
+      'United Kingdom':'🇬🇧','Germany':'🇩🇪','France':'🇫🇷','Italy':'🇮🇹',
+      'Spain':'🇪🇸','Netherlands':'🇳🇱','Russia':'🇷🇺','Poland':'🇵🇱',
+      'Sweden':'🇸🇪','Norway':'🇳🇴','Denmark':'🇩🇰','Finland':'🇫🇮',
+      'Switzerland':'🇨🇭','Austria':'🇦🇹','Belgium':'🇧🇪','Portugal':'🇵🇹',
+      'Czech Republic':'🇨🇿','Romania':'🇷🇴','Hungary':'🇭🇺','Greece':'🇬🇷',
+      'Ukraine':'🇺🇦','Croatia':'🇭🇷','Slovakia':'🇸🇰','Bulgaria':'🇧🇬',
+      // Americas
+      'United States':'🇺🇸','Canada':'🇨🇦','Brazil':'🇧🇷','Mexico':'🇲🇽',
+      'Argentina':'🇦🇷','Colombia':'🇨🇴','Chile':'🇨🇱','Peru':'🇵🇪',
+      'Venezuela':'🇻🇪','Ecuador':'🇪🇨','Bolivia':'🇧🇴',
+      // Africa
+      'Nigeria':'🇳🇬','Egypt':'🇪🇬','South Africa':'🇿🇦','Kenya':'🇰🇪',
+      'Ghana':'🇬🇭','Ethiopia':'🇪🇹','Tanzania':'🇹🇿','Morocco':'🇲🇦',
+      'Algeria':'🇩🇿','Tunisia':'🇹🇳',
+      // Oceania
+      'Australia':'🇦🇺','New Zealand':'🇳🇿',
     };
     return map[country] || '🌍';
   }
@@ -496,22 +527,22 @@
         locationCell = `${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}`;
       }
 
-      const region  = v.location?.regionName || '—';
-      const zip     = v.location?.zip ? `<span class="zip-tag">${v.location.zip}</span>` : '';
-      const isp     = v.location?.isp  || '—';
-      const org     = v.location?.org  || '';
+      const region  = escapeHTML(v.location?.regionName) || '—';
+      const zip     = v.location?.zip ? `<span class="zip-tag">${escapeHTML(v.location.zip)}</span>` : '';
+      const isp     = escapeHTML(v.location?.isp)  || '—';
+      const org     = escapeHTML(v.location?.org)  || '';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><span class="ip-chip">${maskIP(v.ip)}</span></td>
+        <td><span class="ip-chip">${escapeHTML(maskIP(v.ip))}</span></td>
         <td>${locationCell}</td>
         <td class="region-cell">${region}${zip}</td>
         <td class="isp-cell">
           <div class="isp-name">${isp}</div>
           ${org && org !== isp ? `<div class="org-name">${org}</div>` : ''}
         </td>
-        <td><span class="badge">${bIcon} ${bName}</span></td>
-        <td><span class="badge">${dIcon} ${dName}</span></td>
+        <td><span class="badge">${bIcon} ${escapeHTML(bName)}</span></td>
+        <td><span class="badge">${dIcon} ${escapeHTML(dName)}</span></td>
         <td class="time-cell">${formatTime(v.timestamp)}</td>
       `;
       tbody.appendChild(tr);

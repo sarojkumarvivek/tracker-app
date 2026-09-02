@@ -9,10 +9,13 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 export default async function handler(req, res) {
+  // Support ?limit=N (default 100, max 500)
+  const limit = Math.min(parseInt(req.query?.limit) || 100, 500);
+
   const snapshot = await db
     .collection("visits")
     .orderBy("timestamp", "desc")
-    .limit(100)
+    .limit(limit)
     .get();
 
   const data = snapshot.docs.map(doc => doc.data());

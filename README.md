@@ -176,15 +176,15 @@ Both pages use a **dark glassmorphism design** with:
 
 | # | Issue | Severity |
 |---|---|---|
-| 1 | **`.env` contains a real Firebase private key** — critical secret leak risk if pushed to a public repo | 🔴 Critical |
-| 2 | **`AUTH_SECRET`, `DASHBOARD_USER`, `DASHBOARD_PASS` must be set in Vercel** — not present in `.env` | 🟡 Important |
-| 3 | **No pagination in `getVisits.js`** — hardcoded `limit(100)`, older records are inaccessible | 🟡 Important |
-| 4 | **GPS permission is silent** — `index.html` requests geolocation with no visible notice to the visitor | 🟡 Important |
-| 5 | **Potential XSS in `dashboard.html`** — `tr.innerHTML` injects raw Firestore data (ISP, org) without sanitization | 🟡 Important |
-| 6 | **No `vercel.json`** — relies on Vercel conventions; adding one would give more routing control | 🟢 Minor |
-| 7 | **No local dev server** — no `start` script; requires Vercel CLI to run locally | 🟢 Minor |
-| 8 | **Inconsistent indentation in `track.js`** — IP/UA block is not indented inside `handler` | 🟢 Minor |
-| 9 | **Incomplete flag map in `getFlag()`** — many countries fall back to the generic 🌍 emoji | 🟢 Minor |
+| 1 | ~~**`.env` contains a real Firebase private key** — critical secret leak risk if pushed to a public repo~~ ✅ **FIXED** — `.env` is gitignored (never committed). Key is stored in Vercel Environment Variables for production. | 🟢 Resolved |
+| 2 | ~~**`AUTH_SECRET`, `DASHBOARD_USER`, `DASHBOARD_PASS` must be set in Vercel** — not present in `.env`~~ ✅ **FIXED** — Added all three to `.env` with placeholder values. | 🟢 Resolved |
+| 3 | ~~**No pagination in `getVisits.js`** — hardcoded `limit(100)`, older records are inaccessible~~ ✅ **FIXED** — Supports `?limit=N` (default 100, max 500). | 🟢 Resolved |
+| 4 | ~~**GPS permission is silent** — `index.html` requests geolocation with no visible notice~~ ✅ **FIXED** — Added an analytics consent banner that auto-hides after 5s. | 🟢 Resolved |
+| 5 | ~~**Potential XSS in `dashboard.html`** — `tr.innerHTML` injects raw Firestore data without sanitization~~ ✅ **FIXED** — Added `escapeHTML()` applied to all dynamic ISP, org, IP, region, ZIP data. | 🟢 Resolved |
+| 6 | ~~**No `vercel.json`** — relies on Vercel conventions; adding one would give more routing control~~ ✅ **FIXED** — Created `vercel.json` with function config and security headers. | 🟢 Resolved |
+| 7 | ~~**No local dev server** — no `start` script; requires Vercel CLI to run locally~~ ✅ **FIXED** — Added `"dev": "vercel dev"` and `"start": "vercel dev"` to `package.json`. | 🟢 Resolved |
+| 8 | ~~**Inconsistent indentation in `track.js`** — IP/UA block is not indented inside `handler`~~ ✅ **FIXED** — Reformatted all code to consistent 2-space indentation inside `handler`. | 🟢 Resolved |
+| 9 | ~~**Incomplete flag map in `getFlag()`** — many countries fall back to the generic 🌍 emoji~~ ✅ **FIXED** — Expanded from 24 to 60+ countries across Asia, Europe, Americas, Africa, Oceania. | 🟢 Resolved |
 
 ---
 
