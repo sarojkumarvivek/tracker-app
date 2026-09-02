@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Tracker Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #080d1a;
+      --card:        rgba(255,255,255,0.05);
+      --card-border: rgba(255,255,255,0.1);
+      --accent:      #6366f1;
+      --accent2:     #a855f7;
+      --text:        #e2e8f0;
+      --text-muted:  #64748b;
+      --text-sub:    #94a3b8;
+      --error:       #f87171;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image:
+        radial-gradient(ellipse at 30% 20%, rgba(99,102,241,0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(168,85,247,0.15) 0%, transparent 50%);
+    }
+
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px 36px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+      animation: fadeIn .4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .logo-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+    }
+
+    .logo-title {
+      font-size: 22px; font-weight: 700;
+      background: linear-gradient(135deg, #fff 40%, var(--text-sub));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .logo-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    }
+
+    input::placeholder { color: var(--text-muted); }
+
+    .error-box {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--error);
+      margin-bottom: 16px;
+    }
+
+    .error-box.show { display: flex; }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      margin-top: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      position: relative;
+    }
+
+    .btn:hover   { opacity: .9; transform: translateY(-1px); }
+    .btn:active  { transform: translateY(0); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    }
+
+    .btn.loading .spinner { display: block; }
+
+    @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <div class="logo">
+      <div class="logo-icon">📡</div>
+      <div class="logo-title">Tracker Dashboard</div>
+      <div class="logo-sub">Sign in to access your analytics</div>
+    </div>
+
+    <div class="error-box" id="errorBox">
+      ❌ Invalid username or password
+    </div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="username">Username</label>
+        <input
+          id="username" name="username" type="text"
+          placeholder="Enter your username"
+          autocomplete="username" required
+        >
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          id="password" name="password" type="password"
+          placeholder="Enter your password"
+          autocomplete="current-password" required
+        >
+      </div>
+
+      <button class="btn" type="submit" id="loginBtn">
+        Sign In
+        <div class="spinner"></div>
+      </button>
+    </form>
+
+    <div class="footer-note">🔒 Protected by Edge Middleware</div>
+  </div>
+
+  <script>
+    // Show error if redirected back with ?error=1
+    if (new URLSearchParams(location.search).get('error')) {
+      document.getElementById('errorBox').classList.add('show');
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      const errorBox = document.getElementById('errorBox');
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+      errorBox.classList.remove('show');
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+          })
+        });
+
+        if (res.ok) {
+          window.location.href = '/dashboard.html';
+        } else {
+          errorBox.classList.add('show');
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
+      } catch (err) {
+        errorBox.classList.add('show');
+        btn.disabled = false;
+        btn.classList.remove('loading');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -235,9 +235,19 @@
     <div class="logo-icon">📡</div>
     <span class="logo-text">Tracker Dashboard</span>
   </div>
-  <div class="live-badge">
-    <div class="live-dot"></div>
-    Live
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Live
+    </div>
+    <a href="/api/logout"
+       style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);
+              border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:6px 14px;
+              font-size:13px;color:#94a3b8;text-decoration:none;transition:border-color .2s;"
+       onmouseover="this.style.borderColor='rgba(248,113,113,0.4)';this.style.color='#f87171'"
+       onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='#94a3b8'">
+      🔒 Logout
+    </a>
   </div>
 </header>
 
