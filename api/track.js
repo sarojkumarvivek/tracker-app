@@ -31,8 +31,14 @@ let location = {};
 try {
   const resGeo = await axios.get(`http://ip-api.com/json/${ip}`);
   location = {
-    country: resGeo.data.country,
-    city: resGeo.data.city
+    country:    resGeo.data.country,
+    regionName: resGeo.data.regionName,
+    city:       resGeo.data.city,
+    zip:        resGeo.data.zip,
+    lat:        resGeo.data.lat,
+    lon:        resGeo.data.lon,
+    isp:        resGeo.data.isp,
+    org:        resGeo.data.org,
   };
 } catch (err) {
   console.log("Location fetch failed");

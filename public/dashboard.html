@@ -178,6 +178,25 @@
       font-size: 12px; color: var(--text-sub);
     }
 
+    .maps-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      color: #a5b4fc; text-decoration: none; font-size: 13px;
+      transition: color .15s;
+    }
+    .maps-link:hover { color: #818cf8; text-decoration: underline; }
+    .maps-pin { font-size: 14px; }
+
+    .isp-cell { font-size: 12px; }
+    .isp-name { color: var(--text-sub); }
+    .org-name { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+
+    .region-cell { font-size: 12px; color: var(--text-sub); }
+    .zip-tag {
+      display: inline-block; font-size: 11px;
+      background: rgba(255,255,255,0.05); border-radius: 4px;
+      padding: 1px 6px; margin-left: 4px; color: var(--text-muted);
+    }
+
     .time-cell { font-size: 12px; color: var(--text-muted); }
 
     .empty-row td { text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
@@ -187,8 +206,9 @@
       header  { padding: 14px 16px; }
       main    { padding: 16px; }
       .stat-value { font-size: 22px; }
-      thead th:nth-child(5),
-      tbody td:nth-child(5) { display: none; }
+      thead th:nth-child(3), tbody td:nth-child(3),
+    thead th:nth-child(4), tbody td:nth-child(4),
+    thead th:nth-child(6), tbody td:nth-child(6) { display: none; }
     }
   </style>
 </head>
@@ -255,8 +275,9 @@
       <thead>
         <tr>
           <th>IP Address</th>
-          <th>Country</th>
-          <th>City</th>
+          <th>📍 Location</th>
+          <th>Region / ZIP</th>
+          <th>ISP / Org</th>
           <th>Browser</th>
           <th>Device</th>
           <th>Time</th>
@@ -422,12 +443,33 @@
     visits.forEach(v => {
       const [bIcon, bName] = getBrowser(v.userAgent);
       const [dIcon, dName] = getDevice(v.userAgent);
-      const flag = getFlag(v.location?.country);
+      const flag  = getFlag(v.location?.country);
+      const lat   = v.location?.lat;
+      const lon   = v.location?.lon;
+      const mapsUrl = (lat && lon)
+        ? `https://maps.google.com/?q=${lat},${lon}`
+        : null;
+      const locationCell = mapsUrl
+        ? `<a class="maps-link" href="${mapsUrl}" target="_blank" rel="noopener">
+             <span class="maps-pin">📍</span>
+             ${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}
+           </a>`
+        : `${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}`;
+
+      const region  = v.location?.regionName || '—';
+      const zip     = v.location?.zip ? `<span class="zip-tag">${v.location.zip}</span>` : '';
+      const isp     = v.location?.isp  || '—';
+      const org     = v.location?.org  || '';
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><span class="ip-chip">${maskIP(v.ip)}</span></td>
-        <td>${flag} ${v.location?.country || 'Unknown'}</td>
-        <td>${v.location?.city || 'Unknown'}</td>
+        <td>${locationCell}</td>
+        <td class="region-cell">${region}${zip}</td>
+        <td class="isp-cell">
+          <div class="isp-name">${isp}</div>
+          ${org && org !== isp ? `<div class="org-name">${org}</div>` : ''}
+        </td>
         <td><span class="badge">${bIcon} ${bName}</span></td>
         <td><span class="badge">${dIcon} ${dName}</span></td>
         <td class="time-cell">${formatTime(v.timestamp)}</td>
