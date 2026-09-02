@@ -29,7 +29,7 @@
           <td>${v.ip}</td>
           <td>${v.location?.country || "Unknown"}</td>
           <td>${v.location?.city || "Unknown"}</td>
-          <td>${new Date(v.timestamp).toLocaleString()}</td>
+          <td>${v.timestamp?._seconds ? new Date(v.timestamp._seconds * 1000).toLocaleString() : 'Unknown'}</td>
         `;
 
         tbody.appendChild(row);
