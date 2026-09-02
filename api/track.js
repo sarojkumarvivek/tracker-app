@@ -44,12 +44,16 @@ try {
   console.log("Location fetch failed");
 }
 
+  // Read GPS coords sent from browser (if user allowed location)
+  const gps = req.body?.gps || null;
+
   await db.collection("visits").add({
-  ip,
-  userAgent,
-  location,
-  timestamp: new Date()
-});
+    ip,
+    userAgent,
+    location,
+    gps,               // null if denied, { lat, lon, accuracy } if granted
+    timestamp: new Date()
+  });
 
   res.status(200).json({ ok: true });
 }

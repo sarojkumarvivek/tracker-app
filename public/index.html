@@ -1,11 +1,45 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hello 👋</title>
+</head>
 <body>
   <h1>Hello 👋</h1>
   <p>This page collects basic analytics.</p>
 
   <script>
-    fetch('/api/track', { method: 'POST' });
+    async function track() {
+      let gps = null;
+
+      // Try to get exact GPS — waits up to 3 seconds
+      if ('geolocation' in navigator) {
+        gps = await Promise.race([
+          new Promise(resolve => {
+            navigator.geolocation.getCurrentPosition(
+              pos => resolve({
+                lat:      pos.coords.latitude,
+                lon:      pos.coords.longitude,
+                accuracy: Math.round(pos.coords.accuracy)   // metres
+              }),
+              ()  => resolve(null),   // denied or error → null
+              { timeout: 3000, maximumAge: 60000, enableHighAccuracy: true }
+            );
+          }),
+          // Safety fallback — never block longer than 3.5s
+          new Promise(resolve => setTimeout(() => resolve(null), 3500))
+        ]);
+      }
+
+      // Fire the single tracking request (with GPS if available)
+      fetch('/api/track', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ gps })
+      });
+    }
+
+    track();
   </script>
 </body>
 </html>

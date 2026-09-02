@@ -184,7 +184,22 @@
       transition: color .15s;
     }
     .maps-link:hover { color: #818cf8; text-decoration: underline; }
-    .maps-pin { font-size: 14px; }
+    .maps-pin  { font-size: 14px; }
+
+    .gps-exact {
+      display: inline-flex; align-items: center; gap: 5px;
+      color: #34d399; text-decoration: none; font-size: 13px;
+      transition: color .15s;
+    }
+    .gps-exact:hover { color: #6ee7b7; text-decoration: underline; }
+
+    .accuracy-chip {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      background: rgba(52,211,153,0.12);
+      border: 1px solid rgba(52,211,153,0.3);
+      color: #34d399; border-radius: 999px;
+      padding: 1px 7px; margin-left: 6px; vertical-align: middle;
+    }
 
     .isp-cell { font-size: 12px; }
     .isp-name { color: var(--text-sub); }
@@ -444,17 +459,32 @@
       const [bIcon, bName] = getBrowser(v.userAgent);
       const [dIcon, dName] = getDevice(v.userAgent);
       const flag  = getFlag(v.location?.country);
-      const lat   = v.location?.lat;
-      const lon   = v.location?.lon;
-      const mapsUrl = (lat && lon)
-        ? `https://maps.google.com/?q=${lat},${lon}`
+
+      // GPS exact location takes priority over IP-based
+      const hasGps = v.gps?.lat && v.gps?.lon;
+      const mapLat = hasGps ? v.gps.lat  : v.location?.lat;
+      const mapLon = hasGps ? v.gps.lon  : v.location?.lon;
+      const mapsUrl = (mapLat && mapLon)
+        ? `https://maps.google.com/?q=${mapLat},${mapLon}`
         : null;
-      const locationCell = mapsUrl
-        ? `<a class="maps-link" href="${mapsUrl}" target="_blank" rel="noopener">
-             <span class="maps-pin">📍</span>
-             ${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}
-           </a>`
-        : `${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}`;
+
+      let locationCell;
+      if (mapsUrl && hasGps) {
+        // 🎯 Exact GPS — green link + accuracy badge
+        const acc = v.gps.accuracy ? `<span class="accuracy-chip">±${v.gps.accuracy}m</span>` : '';
+        locationCell = `
+          <a class="gps-exact" href="${mapsUrl}" target="_blank" rel="noopener">
+            🎯 ${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}
+          </a>${acc}`;
+      } else if (mapsUrl) {
+        // 📍 IP-based approximate
+        locationCell = `
+          <a class="maps-link" href="${mapsUrl}" target="_blank" rel="noopener">
+            📍 ${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}
+          </a>`;
+      } else {
+        locationCell = `${flag} ${v.location?.country || 'Unknown'}, ${v.location?.city || ''}`;
+      }
 
       const region  = v.location?.regionName || '—';
       const zip     = v.location?.zip ? `<span class="zip-tag">${v.location.zip}</span>` : '';
