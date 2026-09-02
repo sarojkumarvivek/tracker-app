@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const snapshot = await db
     .collection("visits")
     .orderBy("timestamp", "desc")
-    .limit(20)
+    .limit(100)
     .get();
 
   const data = snapshot.docs.map(doc => doc.data());

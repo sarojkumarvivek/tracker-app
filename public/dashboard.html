@@ -1,43 +1,466 @@
 <!DOCTYPE html>
-<html>
-<body>
-  <h2>Visitor Dashboard</h2>
-  <table border="1">
-    <thead>
-      <tr>
-        <th>IP</th>
-        <th>Country</th>
-        <th>City</th>
-        <th>Time</th>
-      </tr>
-    </thead>
-    <tbody id="data"></tbody>
-  </table>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visitor Dashboard — Tracker App</title>
+  <meta name="description" content="Real-time visitor analytics dashboard">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <script>
-    async function load() {
-      const res = await fetch('/api/getVisits');
-      const visits = await res.json();
-
-      const tbody = document.getElementById('data');
-      tbody.innerHTML = '';
-
-      visits.forEach(v => {
-        const row = document.createElement('tr');
-
-        row.innerHTML = `
-          <td>${v.ip}</td>
-          <td>${v.location?.country || "Unknown"}</td>
-          <td>${v.location?.city || "Unknown"}</td>
-          <td>${v.timestamp?._seconds ? new Date(v.timestamp._seconds * 1000).toLocaleString() : 'Unknown'}</td>
-        `;
-
-        tbody.appendChild(row);
-      });
+    :root {
+      --bg:           #080d1a;
+      --card:         rgba(255,255,255,0.04);
+      --card-border:  rgba(255,255,255,0.08);
+      --accent:       #6366f1;
+      --accent2:      #a855f7;
+      --green:        #10b981;
+      --text:         #e2e8f0;
+      --text-muted:   #64748b;
+      --text-sub:     #94a3b8;
     }
 
-    load();
-    setInterval(load, 5000);
-  </script>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 0%, rgba(168,85,247,0.10) 0%, transparent 50%);
+    }
+
+    /* ── Header ─────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(8,13,26,0.85);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .logo { display: flex; align-items: center; gap: 12px; }
+
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-size: 18px; font-weight: 700;
+      background: linear-gradient(135deg, #fff 40%, var(--text-sub));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 999px; padding: 6px 16px;
+      font-size: 13px; color: var(--green); font-weight: 500;
+    }
+
+    .live-dot {
+      width: 8px; height: 8px;
+      background: var(--green); border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.4; transform:scale(0.75); }
+    }
+
+    /* ── Layout ─────────────────────────────── */
+    main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── Stat Cards ─────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 22px;
+      display: flex; flex-direction: column; gap: 6px;
+      position: relative; overflow: hidden;
+      transition: transform .2s, border-color .2s;
+    }
+
+    .stat-card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0; transition: opacity .2s;
+    }
+
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(99,102,241,.35); }
+    .stat-card:hover::after { opacity: 1; }
+
+    .stat-icon { font-size: 22px; margin-bottom: 2px; }
+    .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
+    .stat-value { font-size: 30px; font-weight: 700; color: #fff; line-height: 1.1; }
+    .stat-value.small { font-size: 18px; }
+    .stat-sub   { font-size: 12px; color: var(--text-sub); }
+
+    /* ── Chart Card ─────────────────────────── */
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    .card-title {
+      font-size: 15px; font-weight: 600; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .chart-wrap { height: 220px; position: relative; }
+
+    /* ── Table Card ─────────────────────────── */
+    .table-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px; overflow: hidden;
+    }
+
+    .table-head-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; border-bottom: 1px solid var(--card-border);
+    }
+
+    .refresh-info { font-size: 12px; color: var(--text-muted); }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      padding: 11px 20px; text-align: left;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.035);
+      transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+    tbody td { padding: 13px 20px; font-size: 13px; color: var(--text-sub); vertical-align: middle; }
+
+    .ip-chip {
+      font-family: 'Courier New', monospace; font-size: 12px;
+      color: #a5b4fc;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 6px; padding: 3px 9px; display: inline-block;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 6px; padding: 3px 9px;
+      font-size: 12px; color: var(--text-sub);
+    }
+
+    .time-cell { font-size: 12px; color: var(--text-muted); }
+
+    .empty-row td { text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
+
+    /* ── Responsive ─────────────────────────── */
+    @media (max-width: 768px) {
+      header  { padding: 14px 16px; }
+      main    { padding: 16px; }
+      .stat-value { font-size: 22px; }
+      thead th:nth-child(5),
+      tbody td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📡</div>
+    <span class="logo-text">Tracker Dashboard</span>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    Live
+  </div>
+</header>
+
+<!-- ── Main ────────────────────────────────────── -->
+<main>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👁️</div>
+      <div class="stat-label">Total Visits</div>
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-sub">Last 100 recorded</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👤</div>
+      <div class="stat-label">Unique Visitors</div>
+      <div class="stat-value" id="stat-unique">—</div>
+      <div class="stat-sub">Distinct IPs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🌍</div>
+      <div class="stat-label">Top Country</div>
+      <div class="stat-value small" id="stat-country">—</div>
+      <div class="stat-sub" id="stat-country-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🌐</div>
+      <div class="stat-label">Top Browser</div>
+      <div class="stat-value small" id="stat-browser">—</div>
+      <div class="stat-sub" id="stat-browser-sub"></div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="card-title">📈 Visits Per Day</div>
+    <div class="chart-wrap">
+      <canvas id="visitsChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-head-row">
+      <div class="card-title" style="margin:0">🗂️ Recent Visitors</div>
+      <span class="refresh-info" id="refresh-info">Refreshing in 5s…</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Country</th>
+          <th>City</th>
+          <th>Browser</th>
+          <th>Device</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="data">
+        <tr class="empty-row"><td colspan="6">⏳ Loading visitors…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────────────────
+
+  function getBrowser(ua) {
+    if (!ua) return ['❓', 'Unknown'];
+    const u = ua.toLowerCase();
+    if (u.includes('edg/'))                            return ['🌐', 'Edge'];
+    if (u.includes('opr/') || u.includes('opera'))     return ['🔴', 'Opera'];
+    if (u.includes('chrome') && !u.includes('chromium')) return ['🟡', 'Chrome'];
+    if (u.includes('firefox'))                         return ['🦊', 'Firefox'];
+    if (u.includes('safari') && !u.includes('chrome')) return ['🔵', 'Safari'];
+    if (u.includes('chromium'))                        return ['⚪', 'Chromium'];
+    return ['❓', 'Other'];
+  }
+
+  function getDevice(ua) {
+    if (!ua) return ['🖥️', 'Desktop'];
+    const u = ua.toLowerCase();
+    if (/ipad|tablet/.test(u))           return ['📱', 'Tablet'];
+    if (/mobile|android|iphone/.test(u)) return ['📱', 'Mobile'];
+    return ['🖥️', 'Desktop'];
+  }
+
+  function getFlag(country) {
+    const map = {
+      'India':'🇮🇳','United States':'🇺🇸','United Kingdom':'🇬🇧',
+      'Germany':'🇩🇪','France':'🇫🇷','Canada':'🇨🇦','Australia':'🇦🇺',
+      'Japan':'🇯🇵','China':'🇨🇳','Brazil':'🇧🇷','Russia':'🇷🇺',
+      'Italy':'🇮🇹','Spain':'🇪🇸','Netherlands':'🇳🇱','Singapore':'🇸🇬',
+      'Pakistan':'🇵🇰','Bangladesh':'🇧🇩','Indonesia':'🇮🇩',
+      'South Korea':'🇰🇷','Mexico':'🇲🇽','Turkey':'🇹🇷',
+      'Saudi Arabia':'🇸🇦','UAE':'🇦🇪','Nigeria':'🇳🇬','Egypt':'🇪🇬',
+    };
+    return map[country] || '🌍';
+  }
+
+  function maskIP(ip) {
+    if (!ip) return 'Unknown';
+    const p = ip.split('.');
+    return p.length === 4 ? `${p[0]}.${p[1]}.${p[2]}.xxx` : ip;
+  }
+
+  function formatTime(ts) {
+    if (!ts?._seconds) return 'Unknown';
+    return new Date(ts._seconds * 1000).toLocaleString();
+  }
+
+  function mostCommon(arr) {
+    if (!arr.length) return null;
+    const c = {};
+    arr.forEach(v => { c[v] = (c[v] || 0) + 1; });
+    return Object.entries(c).sort((a,b) => b[1]-a[1])[0];
+  }
+
+  // ── Stats Cards ──────────────────────────────────────────────────────
+
+  function updateStats(visits) {
+    document.getElementById('stat-total').textContent  = visits.length;
+    document.getElementById('stat-unique').textContent = new Set(visits.map(v => v.ip)).size;
+
+    const countries = visits.map(v => v.location?.country).filter(Boolean);
+    const topC = mostCommon(countries);
+    if (topC) {
+      document.getElementById('stat-country').textContent     = `${getFlag(topC[0])} ${topC[0]}`;
+      document.getElementById('stat-country-sub').textContent = `${topC[1]} visits`;
+    }
+
+    const browsers = visits.map(v => getBrowser(v.userAgent)[1]);
+    const topB = mostCommon(browsers);
+    if (topB) {
+      const icon = getBrowser(visits.find(v => getBrowser(v.userAgent)[1] === topB[0])?.userAgent)[0];
+      document.getElementById('stat-browser').textContent     = `${icon} ${topB[0]}`;
+      document.getElementById('stat-browser-sub').textContent = `${topB[1]} visits`;
+    }
+  }
+
+  // ── Chart ────────────────────────────────────────────────────────────
+
+  let chart = null;
+
+  function buildChart(visits) {
+    const dayCounts = {};
+    [...visits].reverse().forEach(v => {
+      if (!v.timestamp?._seconds) return;
+      const day = new Date(v.timestamp._seconds * 1000)
+        .toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+      dayCounts[day] = (dayCounts[day] || 0) + 1;
+    });
+
+    const labels = Object.keys(dayCounts).slice(-14);
+    const data   = labels.map(l => dayCounts[l]);
+
+    const ctx = document.getElementById('visitsChart').getContext('2d');
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Visits',
+          data,
+          backgroundColor: 'rgba(99,102,241,0.45)',
+          borderColor:     'rgba(99,102,241,1)',
+          borderWidth: 2,
+          borderRadius: 6,
+          hoverBackgroundColor: 'rgba(168,85,247,0.55)',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleColor: '#e2e8f0',
+            bodyColor:  '#94a3b8',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            padding: 10,
+          }
+        },
+        scales: {
+          x: {
+            grid:  { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: '#64748b', font: { size: 11 } },
+          },
+          y: {
+            grid:  { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: '#64748b', font: { size: 11 }, stepSize: 1 },
+            beginAtZero: true,
+          }
+        }
+      }
+    });
+  }
+
+  // ── Table ────────────────────────────────────────────────────────────
+
+  function updateTable(visits) {
+    const tbody = document.getElementById('data');
+    tbody.innerHTML = '';
+
+    if (!visits.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No visits yet.</td></tr>';
+      return;
+    }
+
+    visits.forEach(v => {
+      const [bIcon, bName] = getBrowser(v.userAgent);
+      const [dIcon, dName] = getDevice(v.userAgent);
+      const flag = getFlag(v.location?.country);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="ip-chip">${maskIP(v.ip)}</span></td>
+        <td>${flag} ${v.location?.country || 'Unknown'}</td>
+        <td>${v.location?.city || 'Unknown'}</td>
+        <td><span class="badge">${bIcon} ${bName}</span></td>
+        <td><span class="badge">${dIcon} ${dName}</span></td>
+        <td class="time-cell">${formatTime(v.timestamp)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Auto-refresh ─────────────────────────────────────────────────────
+
+  let countdown = 5;
+  setInterval(() => {
+    countdown = Math.max(0, countdown - 1);
+    document.getElementById('refresh-info').textContent =
+      countdown > 0 ? `Refreshing in ${countdown}s…` : 'Refreshing…';
+  }, 1000);
+
+  async function load() {
+    try {
+      const res    = await fetch('/api/getVisits');
+      const visits = await res.json();
+      updateStats(visits);
+      updateTable(visits);
+      buildChart(visits);
+      countdown = 5;
+    } catch (e) {
+      console.error('Failed to load:', e);
+    }
+  }
+
+  load();
+  setInterval(load, 5000);
+</script>
+
 </body>
 </html>
