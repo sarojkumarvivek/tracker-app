@@ -55,5 +55,35 @@ try {
     timestamp: new Date()
   });
 
+  // ── Telegram Alert ────────────────────────────────────────────────────
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId   = process.env.TELEGRAM_CHAT_ID;
+
+    if (botToken && chatId) {
+      const gpsLine = gps?.lat
+        ? `🎯 GPS: ${gps.lat}, ${gps.lon} ±${gps.accuracy}m`
+        : `📡 GPS: Not shared`;
+
+      const message = [
+        `🔔 <b>New Visitor</b>`,
+        ``,
+        `🌍 ${location.country || 'Unknown'}, ${location.city || 'Unknown'}`,
+        `🏙️ ${location.regionName || '—'} ${location.zip ? `(${location.zip})` : ''}`,
+        `🏢 ${location.isp || '—'}`,
+        `🖥️ IP: <code>${ip}</code>`,
+        `📱 ${userAgent}`,
+        gpsLine,
+      ].join('\n');
+
+      await axios.post(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        { chat_id: chatId, parse_mode: 'HTML', text: message }
+      );
+    }
+  } catch (e) {
+    console.log('Telegram notify failed:', e.message);
+  }
+
   res.status(200).json({ ok: true });
 }
