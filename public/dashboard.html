@@ -6,6 +6,7 @@
   <title>Visitor Dashboard — Tracker App</title>
   <meta name="description" content="Real-time visitor analytics dashboard">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -60,24 +61,7 @@
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
-    .live-badge {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(16,185,129,0.1);
-      border: 1px solid rgba(16,185,129,0.3);
-      border-radius: 999px; padding: 6px 16px;
-      font-size: 13px; color: var(--green); font-weight: 500;
-    }
 
-    .live-dot {
-      width: 8px; height: 8px;
-      background: var(--green); border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:0.4; transform:scale(0.75); }
-    }
 
     /* ── Layout ─────────────────────────────── */
     main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
@@ -216,6 +200,23 @@
 
     .empty-row td { text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
 
+    /* ── Refresh Button ─────────────────────── */
+    .refresh-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 8px; padding: 6px 14px;
+      font-size: 12px; color: #a5b4fc; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-weight: 500;
+      transition: background .2s, border-color .2s, transform .15s;
+    }
+    .refresh-btn:hover:not(:disabled) {
+      background: rgba(99,102,241,0.22);
+      border-color: rgba(99,102,241,0.55);
+    }
+    .refresh-btn:active:not(:disabled) { transform: scale(0.95); }
+    .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
     /* ── Responsive ─────────────────────────── */
     @media (max-width: 768px) {
       header  { padding: 14px 16px; }
@@ -236,10 +237,6 @@
     <span class="logo-text">Tracker Dashboard</span>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <div class="live-badge">
-      <div class="live-dot"></div>
-      Live
-    </div>
     <a href="/api/logout"
        style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);
               border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:6px 14px;
@@ -294,7 +291,10 @@
   <div class="table-card">
     <div class="table-head-row">
       <div class="card-title" style="margin:0">🗂️ Recent Visitors</div>
-      <span class="refresh-info" id="refresh-info">Refreshing in 5s…</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="refresh-info" id="refresh-info"></span>
+        <button class="refresh-btn" id="btn-refresh" onclick="manualRefresh()">↻ Refresh</button>
+      </div>
     </div>
     <table>
       <thead>
@@ -390,8 +390,11 @@
   }
 
   function formatTime(ts) {
-    if (!ts?._seconds) return 'Unknown';
-    return new Date(ts._seconds * 1000).toLocaleString();
+    if (!ts) return 'Unknown';
+    // Client SDK returns .seconds; admin SDK serialises as ._seconds
+    const secs = ts._seconds ?? ts.seconds;
+    if (!secs) return 'Unknown';
+    return new Date(secs * 1000).toLocaleString();
   }
 
   function mostCommon(arr) {
@@ -430,8 +433,9 @@
   function buildChart(visits) {
     const dayCounts = {};
     [...visits].reverse().forEach(v => {
-      if (!v.timestamp?._seconds) return;
-      const day = new Date(v.timestamp._seconds * 1000)
+      const secs = v.timestamp?._seconds ?? v.timestamp?.seconds;
+      if (!secs) return;
+      const day = new Date(secs * 1000)
         .toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
       dayCounts[day] = (dayCounts[day] || 0) + 1;
     });
@@ -549,30 +553,36 @@
     });
   }
 
-  // ── Auto-refresh ─────────────────────────────────────────────────────
-
-  let countdown = 5;
-  setInterval(() => {
-    countdown = Math.max(0, countdown - 1);
-    document.getElementById('refresh-info').textContent =
-      countdown > 0 ? `Refreshing in ${countdown}s…` : 'Refreshing…';
-  }, 1000);
+  // ── Manual Refresh ────────────────────────────────────────────────────
 
   async function load() {
     try {
       const res    = await fetch('/api/getVisits');
       const visits = await res.json();
+      if (!Array.isArray(visits)) throw new Error('Bad response from API');
       updateStats(visits);
       updateTable(visits);
       buildChart(visits);
-      countdown = 5;
+      document.getElementById('refresh-info').textContent = '✅ Updated ' + new Date().toLocaleTimeString();
     } catch (e) {
       console.error('Failed to load:', e);
+      document.getElementById('refresh-info').textContent = '❌ Load Failed';
     }
   }
 
+  async function manualRefresh() {
+    const btn  = document.getElementById('btn-refresh');
+    const info = document.getElementById('refresh-info');
+    btn.disabled    = true;
+    btn.textContent = '⏳ Loading…';
+    info.textContent = '⏳ Loading…';
+    await load();
+    btn.disabled    = false;
+    btn.textContent = '↻ Refresh';
+  }
+
+  // Initial load
   load();
-  setInterval(load, 5000);
 </script>
 
 </body>
