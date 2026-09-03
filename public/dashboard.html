@@ -385,8 +385,7 @@
 
   function maskIP(ip) {
     if (!ip) return 'Unknown';
-    const p = ip.split('.');
-    return p.length === 4 ? `${p[0]}.${p[1]}.${p[2]}.xxx` : ip;
+    return ip;
   }
 
   function formatTime(ts) {
